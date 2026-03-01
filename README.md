@@ -1,12 +1,12 @@
-**DevOps Capstone Project**
+# DevOps Capstone Project
 
-### End-to-End CI/CD Pipeline for Node.js Application
+## End-to-End CI/CD Pipeline for Node.js Application
 
-## Overview
+## Project Description
 
-This project demonstrates a complete DevOps pipeline for a Node.js web application deployed on AWS.
+This project demonstrates a complete end-to-end DevOps pipeline for a Node.js web application deployed on AWS EC2.
 
-The pipeline automates build, test, Docker image creation, deployment to EC2, monitoring, and maintenance using modern DevOps tools.
+The system automates build, test, Docker image creation, deployment, monitoring, and maintenance using modern DevOps tools including Jenkins, Docker, Prometheus, and Grafana.
 
 ---
 
@@ -15,25 +15,60 @@ The pipeline automates build, test, Docker image creation, deployment to EC2, mo
 * Git & GitHub
 * Jenkins (CI/CD)
 * Docker & Docker Hub
-* AWS EC2 (Ubuntu)
+* AWS EC2 (Ubuntu 22.04)
 * Prometheus & Grafana
 * Bash & Cron (Automation)
 
 ---
 
-## 🔄 CI/CD Workflow
+## Setup Instructions (Run Locally)
+
+### 1️⃣ Clone the Repository
+
+```bash
+git clone https://github.com/pranitha-prani/devops-capstone-app.git
+cd devops-capstone-app
+```
+
+### 2️⃣ Run Using Node.js
+
+```bash
+npm install
+node app.js
+```
+
+**Application runs at:**
+[http://localhost:3000](http://localhost:3000)
+
+---
+
+### 3️⃣ Run Using Docker
+
+```bash
+docker build -t devops-capstone-app .
+docker run -p 3000:3000 devops-capstone-app
+```
+
+**Application runs at:**
+[http://localhost:3000](http://localhost:3000)
+
+---
+
+## 🔄 CI/CD Flow (Brief Explanation)
 
 1. Developer pushes code to GitHub
-2. GitHub webhook triggers Jenkins
-3. Jenkins:
+2. GitHub webhook automatically triggers Jenkins
+3. Jenkins pipeline:
 
    * Installs dependencies
    * Runs tests
    * Builds Docker image
-   * Pushes to Docker Hub
-   * Deploys to AWS EC2 via SSH
-4. Prometheus monitors the server
-5. Grafana visualizes metrics
+   * Pushes image to Docker Hub
+   * Deploys container to AWS EC2 via SSH
+4. Health check validates deployment
+5. Prometheus collects server metrics
+6. Grafana visualizes CPU, memory, disk, and uptime
+7. Cron jobs automate daily backups and weekly cleanup
 
 ---
 
@@ -60,10 +95,11 @@ The pipeline automates build, test, Docker image creation, deployment to EC2, mo
 * Separate Jenkins & App EC2 servers
 * Health check validation
 * Monitoring with Prometheus & Grafana
-* Automated backups using Cron
+* Automated backup & cleanup using Cron
 
 ---
 
 **Author:** Pranitha
 **Project:** DevOps Capstone – March 2026
+
 
