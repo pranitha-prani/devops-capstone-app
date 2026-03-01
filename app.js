@@ -1,3 +1,4 @@
+// End-to-End Test
 const express = require('express');
 const os = require('os');
 const app = express();
@@ -5,7 +6,7 @@ const PORT = process.env.PORT || 3000;
 
 app.get('/', (req, res) => {
   res.send(`
-    <h1>🚀 DevOps Capstone App</h1>
+    <h1>DevOps Capstone App</h1>
     <p>Running on host: <strong>${os.hostname()}</strong></p>
     <p>Server time: <strong>${new Date().toISOString()}</strong></p>
     <p>Node version: <strong>${process.version}</strong></p>
