@@ -1,22 +1,13 @@
-// End-to-End Test -2
 const express = require('express');
+const path = require('path');
 const os = require('os');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-app.get('/', (req, res) => {
-  res.send(`
-    <h1>DevOps Capstone App</h1>
-    <p>Running on host: <strong>${os.hostname()}</strong></p>
-    <p>Server time: <strong>${new Date().toISOString()}</strong></p>
-    <p>Node version: <strong>${process.version}</strong></p>
-  `);
-});
+app.use(express.static(path.join(__dirname, 'public')));
 
 app.get('/health', (req, res) => {
-  res.status(200).json({ status: 'healthy', uptime: process.uptime() });
+    res.status(500).json({ status: 'unhealthy' });  // ← Changed 200 to 500
 });
 
-app.listen(PORT, () => {
-  console.log(`App running on port ${PORT}`);
-});
+app.listen(PORT, () => console.log(`Running on port ${PORT}`));
