@@ -43,44 +43,44 @@ pipeline {
                 sh "docker push ${DOCKER_IMAGE}:latest"
             }
         }
-        stage('Deploy to App Server') {
-            steps {
-                echo 'Deploying to App Server...'
-                sshagent(['app-server-ssh']) {
-                    sh """
-                        ssh -o StrictHostKeyChecking=no ubuntu@${APP_SERVER_IP} '
-                            PREV_TAG=\$(docker inspect capstone-app --format="{{.Config.Image}}" 2>/dev/null | cut -d: -f2 || echo latest)
-                            echo "Previous image tag: \$PREV_TAG"
-                            docker pull ${DOCKER_IMAGE}:latest &&
-                            docker stop capstone-app || true &&
-                            docker rm capstone-app || true &&
-                            docker run -d --name capstone-app --restart always -p 3000:3000 ${DOCKER_IMAGE}:latest
-                        '
-                    """
-                }
-            }
-        }
-        stage('Health Check') {
-            steps {
-                echo 'Verifying deployment...'
-                sh 'sleep 10'
-                sshagent(['app-server-ssh']) {
-                    sh """
-                        ssh -o StrictHostKeyChecking=no ubuntu@${APP_SERVER_IP} '
-                            if curl -f http://localhost:3000/health; then
-                                echo "Health check PASSED"
-                            else
-                                echo "Health check FAILED - triggering rollback"
-                                PREV_TAG=\$(docker inspect capstone-app --format="{{.Config.Image}}" 2>/dev/null | cut -d: -f2 || echo latest)
-                                bash /home/ubuntu/scripts/rollback.sh \$PREV_TAG
-                                exit 1
-                            fi
-                        '
-                    """
-                }
-            }
+      stage('Deploy to App Server') {
+    steps {
+        echo 'Deploying to App Server...'
+        sshagent(['app-server-ssh']) {
+            sh """
+                ssh -o StrictHostKeyChecking=no ubuntu@${APP_SERVER_IP} '
+                    PREV_TAG=\$(docker inspect capstone-app --format="{{.Config.Image}}" 2>/dev/null | cut -d: -f2 || echo latest)
+                    echo "Previous image tag: \$PREV_TAG"
+                    echo \$PREV_TAG > /home/ubuntu/prev_tag.txt
+                    docker pull ${DOCKER_IMAGE}:latest
+                    docker stop capstone-app || true
+                    docker rm capstone-app || true
+                    docker run -d --name capstone-app --restart always -p 3000:3000 ${DOCKER_IMAGE}:latest
+                '
+            """
         }
     }
+}
+stage('Health Check') {
+    steps {
+        echo 'Verifying deployment...'
+        sh 'sleep 10'
+        sshagent(['app-server-ssh']) {
+            sh """
+                ssh -o StrictHostKeyChecking=no ubuntu@${APP_SERVER_IP} '
+                    if curl -f http://localhost:3000/health; then
+                        echo "✅ Health check PASSED"
+                    else
+                        echo "❌ Health check FAILED - triggering rollback"
+                        PREV_TAG=\$(cat /home/ubuntu/prev_tag.txt || echo latest)
+                        bash /home/ubuntu/scripts/rollback.sh \$PREV_TAG
+                        exit 1
+                    fi
+                '
+            """
+        }
+    }
+}
     post {
         success {
             echo '✅ Pipeline completed successfully!'
