@@ -43,79 +43,36 @@ pipeline {
                 sh "docker push ${DOCKER_IMAGE}:latest"
             }
         }
-      stage('Deploy to App Server') {
-    steps {
-        echo 'Deploying to App Server...'
-        sshagent(['app-server-ssh']) {
-            sh """
-                ssh -o StrictHostKeyChecking=no ubuntu@${APP_SERVER_IP} '
-                    PREV_TAG=\$(docker inspect capstone-app --format="{{.Config.Image}}" 2>/dev/null | cut -d: -f2 || echo latest)
-                    echo "Previous image tag: \$PREV_TAG"
-                    echo \$PREV_TAG > /home/ubuntu/prev_tag.txt
-                    docker pull ${DOCKER_IMAGE}:latest
-                    docker stop capstone-app || true
-                    docker rm capstone-app || true
-                    docker run -d --name capstone-app --restart always -p 3000:3000 ${DOCKER_IMAGE}:latest
-                '
-            """
+        stage('Deploy to App Server') {
+            steps {
+                echo 'Deploying to App Server...'
+                sshagent(['app-server-ssh']) {
+                    sh """
+                        ssh -o StrictHostKeyChecking=no ubuntu@${APP_SERVER_IP} 'PREV_TAG=\$(docker inspect capstone-app --format="{{.Config.Image}}" 2>/dev/null | cut -d: -f2 || echo latest) && echo \$PREV_TAG > /home/ubuntu/prev_tag.txt && docker pull ${DOCKER_IMAGE}:latest && docker stop capstone-app || true && docker rm capstone-app || true && docker run -d --name capstone-app --restart always -p 3000:3000 ${DOCKER_IMAGE}:latest'
+                    """
+                }
+            }
+        }
+        stage('Health Check') {
+            steps {
+                echo 'Verifying deployment...'
+                sh 'sleep 10'
+                sshagent(['app-server-ssh']) {
+                    sh """
+                        ssh -o StrictHostKeyChecking=no ubuntu@${APP_SERVER_IP} 'if curl -f http://localhost:3000/health; then echo "Health check PASSED"; else echo "Health check FAILED - triggering rollback"; PREV_TAG=\$(cat /home/ubuntu/prev_tag.txt || echo latest); bash /home/ubuntu/scripts/rollback.sh \$PREV_TAG; exit 1; fi'
+                    """
+                }
+            }
         }
     }
-}
-stage('Health Check') {
-    steps {
-        echo 'Verifying deployment...'
-        sh 'sleep 10'
-        sshagent(['app-server-ssh']) {
-            sh """
-                ssh -o StrictHostKeyChecking=no ubuntu@${APP_SERVER_IP} '
-                    if curl -f http://localhost:3000/health; then
-                        echo "✅ Health check PASSED"
-                    else
-                        echo "❌ Health check FAILED - triggering rollback"
-                        PREV_TAG=\$(cat /home/ubuntu/prev_tag.txt || echo latest)
-                        bash /home/ubuntu/scripts/rollback.sh \$PREV_TAG
-                        exit 1
-                    fi
-                '
-            """
-        }
-    }
-}
     post {
         success {
-            echo '✅ Pipeline completed successfully!'
-            sh """
-                aws sns publish \
-                  --topic-arn ${SNS_TOPIC_ARN} \
-                  --message "✅ BUILD SUCCESS: DevOps Capstone Pipeline #${BUILD_NUMBER} passed all stages successfully.
-
-Pipeline Details:
-- Build Number  : #${BUILD_NUMBER}
-- Status        : SUCCESS
-- Docker Image  : ${DOCKER_IMAGE}:${BUILD_NUMBER}
-- App Live URL  : http://${APP_PUBLIC_IP}:3000
-- Health Check  : http://${APP_PUBLIC_IP}:3000/health
-- Jenkins URL   : http://${JENKINS_PUBLIC_IP}:8080" \
-                  --subject "✅ Jenkins Build SUCCESS - Build #${BUILD_NUMBER}" \
-                  --region ${AWS_REGION}
-            """
+            echo 'Pipeline completed successfully!'
+            sh '/usr/local/bin/aws sns publish --topic-arn ' + env.SNS_TOPIC_ARN + ' --message "BUILD SUCCESS: DevOps Capstone Pipeline #' + env.BUILD_NUMBER + ' passed all stages. App URL: http://' + env.APP_PUBLIC_IP + ':3000 Health Check: http://' + env.APP_PUBLIC_IP + ':3000/health Jenkins: http://' + env.JENKINS_PUBLIC_IP + ':8080" --subject "Jenkins Build SUCCESS - Build #' + env.BUILD_NUMBER + '" --region ' + env.AWS_REGION
         }
         failure {
-            echo '❌ Pipeline failed!'
-            sh """
-                aws sns publish \
-                  --topic-arn ${SNS_TOPIC_ARN} \
-                  --message "❌ BUILD FAILED: DevOps Capstone Pipeline #${BUILD_NUMBER} failed.
-
-Pipeline Details:
-- Build Number  : #${BUILD_NUMBER}
-- Status        : FAILED
-- Docker Image  : ${DOCKER_IMAGE}:${BUILD_NUMBER}
-- Jenkins Logs  : http://${JENKINS_PUBLIC_IP}:8080/job/devops-capstone-pipeline/${BUILD_NUMBER}/console
-- Action        : Auto Rollback triggered on App Server" \
-                  --subject "❌ Jenkins Build FAILED - Build #${BUILD_NUMBER}" \
-                  --region ${AWS_REGION}
-            """
+            echo 'Pipeline failed!'
+            sh '/usr/local/bin/aws sns publish --topic-arn ' + env.SNS_TOPIC_ARN + ' --message "BUILD FAILED: DevOps Capstone Pipeline #' + env.BUILD_NUMBER + ' failed. Check logs at: http://' + env.JENKINS_PUBLIC_IP + ':8080/job/devops-capstone-pipeline/' + env.BUILD_NUMBER + '/console Auto Rollback triggered on App Server." --subject "Jenkins Build FAILED - Build #' + env.BUILD_NUMBER + '" --region ' + env.AWS_REGION
         }
         always {
             sh 'docker logout || true'
