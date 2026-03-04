@@ -6,7 +6,7 @@
 
 This project demonstrates a complete end-to-end DevOps pipeline for a Node.js web application deployed on AWS EC2.
 
-The system automates build, test, Docker image creation, deployment, monitoring, and maintenance using modern DevOps tools including Jenkins, Docker, Prometheus, and Grafana.
+The system automates build, test, Docker image creation, deployment, monitoring, and maintenance using modern DevOps tools including Jenkins, Docker, Prometheus, and Grafana..
 
 ---
 
@@ -101,6 +101,7 @@ docker run -p 3000:3000 devops-capstone-app
 
 **Author:** Pranitha
 **Project:** DevOps Capstone – March 2026
+
 
 
 
