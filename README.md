@@ -70,6 +70,7 @@ docker run -p 3000:3000 devops-capstone-app
 6. Grafana visualizes CPU, memory, disk, and uptime
 7. Cron jobs automate daily backups and weekly cleanup
 8. sns+Email notification
+9. Rollback
 ---
 
 ## Live URLs
@@ -101,6 +102,7 @@ docker run -p 3000:3000 devops-capstone-app
 
 **Author:** Pranitha
 **Project:** DevOps Capstone – March 2026
+
 
 
 
